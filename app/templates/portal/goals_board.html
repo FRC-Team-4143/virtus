@@ -1,0 +1,60 @@
+{% extends "portal/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Team Goals · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h3 class="mb-0">Team Goals</h3>
+    <div class="text-muted small">What the team is trying to achieve this season.</div>
+  </div>
+  <form method="get" class="d-flex gap-2">
+    <select class="form-select form-select-sm" name="season" onchange="this.form.submit()">
+      {% for s in seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <select class="form-select form-select-sm" name="team" onchange="this.form.submit()">
+      <option value="">All teams</option>
+      {% for t in teams %}<option value="{{ t.value }}" {% if t == team_filter %}selected{% endif %}>{{ t.label }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn btn-sm btn-outline-primary">Go</button></noscript>
+  </form>
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if not groups %}
+  <div class="card"><div class="card-body text-center text-muted py-5">
+    No team goals for {{ season }}{% if team_filter %} · {{ team_filter.label }}{% endif %} yet.
+    {% if is_staff(session_identity(request)) %}<a href="/admin/team-goals">Add the first one</a>.{% endif %}
+  </div></div>
+{% endif %}
+
+{% for heading, goals in groups %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ heading }}</span>
+    <span class="text-muted small fw-normal">{{ goals|selectattr('status.value', 'equalto', 'done')|list|length }} / {{ goals|length }} done</span>
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for goal in goals %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <div class="fw-semibold">{{ goal.title }}</div>
+          <div class="text-muted small">{{ goal.team.label }}</div>
+          {% if goal.description %}<div class="text-muted small mt-1">{{ goal.description }}</div>{% endif %}
+        </div>
+        <div class="text-end flex-shrink-0">
+          {{ m.status_chip(goal.status) }}
+          <div class="mt-1">{{ m.due(goal.target_date) }}</div>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li class="list-group-item text-muted small py-3">No goals in this category yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+
+{% endblock %}

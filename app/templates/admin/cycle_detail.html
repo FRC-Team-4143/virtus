@@ -1,0 +1,169 @@
+{% extends "admin/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ cycle.name }} · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div>
+    <h3 class="mb-1">{{ cycle.name }}
+      <span class="chip chip-{{ cycle.status.value }} align-middle">{{ cycle.status.value|title }}</span>
+    </h3>
+    <div class="text-muted small">
+      {{ cycle.season }} season ·
+      {{ cycle.opens_at|localdate or 'no open date' }} → {{ cycle.closes_at|localdate or 'no close date' }}
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if cycle.status == CycleStatus.draft %}
+      <form method="post" action="/admin/cycles/{{ cycle.id }}/refresh-roster">
+        <button class="btn btn-sm btn-outline-secondary">Refresh roster</button>
+      </form>
+      <form method="post" action="/admin/cycles/{{ cycle.id }}/open"
+            onsubmit="return confirm('Open this cycle? Everyone on it will be DM\'d, and the competency list gets frozen.')">
+        <button class="btn btn-sm btn-primary">Open cycle</button>
+      </form>
+    {% elif cycle.status == CycleStatus.open %}
+      <form method="post" action="/admin/cycles/{{ cycle.id }}/nag">
+        <button class="btn btn-sm btn-outline-primary">Remind everyone</button>
+      </form>
+      <form method="post" action="/admin/cycles/{{ cycle.id }}/close"
+            onsubmit="return confirm('Close this cycle? Unfinished reviews can no longer be written.')">
+        <button class="btn btn-sm btn-outline-secondary">Close cycle</button>
+      </form>
+    {% else %}
+      <form method="post" action="/admin/cycles/{{ cycle.id }}/reopen">
+        <button class="btn btn-sm btn-outline-primary">Reopen</button>
+      </form>
+    {% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="/admin/cycles">All cycles</a>
+  </div>
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if cycle.status == CycleStatus.draft %}
+<div class="alert alert-secondary py-2 small">
+  This cycle is a <strong>draft</strong> — nobody can see it yet. Assign reviewers below,
+  then <strong>Open cycle</strong> to freeze the competency list and notify everyone.
+</div>
+{% endif %}
+
+{# ── Progress ──────────────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between small mb-1">
+      <span><strong>{{ stats.both_done }}</strong> of {{ stats.total }} fully complete</span>
+      <span class="text-muted">{{ stats.percent }}%</span>
+    </div>
+    <div class="progress mb-3" style="height:.6rem; background:#2a1a1a;">
+      <div class="progress-bar" style="width: {{ stats.percent }}%; background:#cc2200;"></div>
+    </div>
+    <div class="row text-center small">
+      <div class="col"><div class="fs-5 fw-bold">{{ stats.self_done }}</div><div class="text-muted">self-reviews in</div></div>
+      <div class="col"><div class="fs-5 fw-bold">{{ stats.reviewer_done }}</div><div class="text-muted">reviewer reviews in</div></div>
+      <div class="col"><div class="fs-5 fw-bold {% if stats.unassigned %}text-warning{% endif %}">{{ stats.unassigned }}</div><div class="text-muted">unassigned</div></div>
+    </div>
+  </div>
+</div>
+
+{# ── Bulk assign ───────────────────────────────────────────────────────────────── #}
+{% if cycle.status != CycleStatus.closed %}
+<div class="card mb-4">
+  <div class="card-header">Assign a whole subteam</div>
+  <form method="post" action="/admin/cycles/{{ cycle.id }}/assign-subteam" class="card-body row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small text-muted">Subteam</label>
+      <select class="form-select" name="subteam_slug">
+        {% for s in subteams %}<option value="{{ s.slug }}">{{ s.label }}</option>{% endfor %}
+        <option value="">(no subteam)</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small text-muted">Reviewer</label>
+      <select class="form-select" name="reviewer_id" required>
+        <option value="">Choose…</option>
+        {% for r in reviewers %}
+        <option value="{{ r.id }}">{{ r.name }}{% if r.kind.value == 'student' %} (student){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-primary">Assign unassigned</button>
+      <div class="form-text">Skips anyone who already has a reviewer.</div>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{# ── The matrix ────────────────────────────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-header">Students ({{ assignments|length }})</div>
+  <div class="table-responsive">
+    <table class="table table-dark align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Student</th><th>Subteam</th><th style="min-width:14rem;">Reviewer</th>
+          <th class="text-center">Self</th><th class="text-center">Reviewer</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assignments %}
+        {% set self_review = a.review_of(ReviewKind.self_review) %}
+        {% set rev_review = a.review_of(ReviewKind.reviewer) %}
+        <tr>
+          <td><a href="/admin/students/{{ a.member.member_code }}">{{ a.member.name }}</a></td>
+          <td class="text-muted small">{{ a.subteam_label or '—' }}</td>
+          <td>
+            {% if cycle.status == CycleStatus.closed %}
+              <span class="text-muted">{{ a.reviewer.name if a.reviewer else '—' }}</span>
+            {% else %}
+              <select class="form-select form-select-sm" name="reviewer_id"
+                      form="assign-{{ a.id }}" onchange="this.form.submit()">
+                <option value="">— nobody —</option>
+                {% for r in reviewers if r.id != a.member_id %}
+                <option value="{{ r.id }}" {% if r.id == a.reviewer_member_id %}selected{% endif %}>
+                  {{ r.name }}{% if r.kind.value == 'student' %} (student){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+              <noscript><button class="btn btn-sm btn-outline-primary mt-1" form="assign-{{ a.id }}">Set</button></noscript>
+            {% endif %}
+          </td>
+          <td class="text-center">{{ m.review_state(self_review, ReviewStatus) }}</td>
+          <td class="text-center">{{ m.review_state(rev_review, ReviewStatus) }}</td>
+          <td class="text-end text-nowrap">
+            {% if self_review and self_review.status == ReviewStatus.submitted %}
+            <a class="btn btn-sm btn-outline-secondary" href="/admin/students/{{ a.member.member_code }}">View</a>
+            {% endif %}
+            {% if is_admin(session_identity(request)) %}
+              {% for r in [self_review, rev_review] if r and r.status == ReviewStatus.submitted %}
+              <form method="post" action="/admin/cycles/{{ cycle.id }}/reviews/{{ r.id }}/unsubmit" class="d-inline"
+                    onsubmit="return confirm('Reopen the {{ r.kind.value }} review for editing? {{ a.member.name }} may already have read it.')">
+                <button class="btn btn-sm btn-outline-danger" title="Reopen the {{ r.kind.value }} review">
+                  <i class="bi bi-unlock"></i> {{ r.kind.value }}
+                </button>
+              </form>
+              {% endfor %}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">
+          No students on this cycle. Use <strong>Refresh roster</strong> above.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# Row forms live outside the table — a <form> can't be a child of <tr>. #}
+{% if cycle.status != CycleStatus.closed %}
+{% for a in assignments %}
+<form id="assign-{{ a.id }}" method="post" action="/admin/cycles/{{ cycle.id }}/assign">
+  <input type="hidden" name="assignment_id" value="{{ a.id }}">
+</form>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

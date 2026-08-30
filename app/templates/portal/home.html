@@ -1,0 +1,156 @@
+{% extends "portal/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}My Goals &amp; Reviews · Virtus{% endblock %}
+{% block content %}
+
+<h3 class="mb-1">Hi, {{ member.name.split()[0] }}</h3>
+<div class="text-muted mb-4">{{ member.subteam_display }} · {{ season }} season</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if goal_shortfall %}
+<div class="alert alert-warning d-flex align-items-start gap-2">
+  <i class="bi bi-flag-fill mt-1"></i>
+  <div>
+    <div class="fw-semibold">Set {{ goal_shortfall }} more personal goal{{ 's' if goal_shortfall != 1 }} for the {{ season }} season.</div>
+    <div class="small">
+      Everyone keeps at least {{ required_goals }} development goals on file — you have {{ goals|length }}.
+      Add them below; your reviewer reads this list alongside your review, and you can't
+      submit your self-review until it's met.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Reviews: whatever needs my attention comes first ─────────────────────────── #}
+{% if my_assignments or owed %}
+<div class="card mb-4">
+  <div class="card-header">Reviews</div>
+  <ul class="list-group list-group-flush">
+    {% for a in my_assignments %}
+    {% set self_review = a.review_of(ReviewKind.self_review) %}
+    <li class="list-group-item d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <div>
+        <div class="fw-semibold">{{ a.cycle.name }}</div>
+        <div class="text-muted small">Your self-review {{ m.review_state(self_review, ReviewStatus) }}</div>
+      </div>
+      <div class="d-flex gap-2">
+        {% if self_review and self_review.status == ReviewStatus.submitted %}
+        <a class="btn btn-sm btn-outline-primary" href="/me/review/{{ a.cycle_id }}/result">See results</a>
+        {% else %}
+        <a class="btn btn-sm btn-primary" href="/me/review/{{ a.cycle_id }}">
+          {% if self_review %}Continue{% else %}Start{% endif %} self-review
+        </a>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+
+    {% for a in owed %}
+    {% set r = a.review_of(ReviewKind.reviewer) %}
+    <li class="list-group-item d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <div>
+        <div class="fw-semibold">Review of {{ a.member.name }}</div>
+        <div class="text-muted small">{{ a.cycle.name }} · {{ m.review_state(r, ReviewStatus) }}</div>
+      </div>
+      {% if not (r and r.status == ReviewStatus.submitted) %}
+      <a class="btn btn-sm btn-primary" href="/me/reviews/{{ a.id }}">{% if r %}Continue{% else %}Write{% endif %} review</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{# ── My goals ─────────────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>My Goals</span>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#new-goal">
+      <i class="bi bi-plus-lg"></i> Add a goal
+    </button>
+  </div>
+
+  <div class="collapse{% if goal_shortfall %} show{% endif %}" id="new-goal">
+    <form method="post" action="/me/goals" class="p-3 border-bottom" style="border-color:#2a1a1a !important;">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Goal</label>
+          <input class="form-control" name="title" required maxlength="200" placeholder="e.g. Learn to run the CNC unsupervised">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Target date <span class="text-muted">(optional)</span></label>
+          <input class="form-control" type="date" name="target_date">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Status</label>
+          {{ m.status_select(statuses, none) }}
+        </div>
+        <div class="col-12">
+          <label class="form-label small text-muted">Notes <span class="text-muted">(optional)</span></label>
+          <textarea class="form-control" name="description" rows="2" placeholder="How will you know you got there?"></textarea>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm mt-3">Add goal</button>
+    </form>
+  </div>
+
+  {% if not goals %}
+  <div class="card-body text-center text-muted py-5">
+    No goals yet for the {{ season }} season. Add one above — this is the list your reviewer
+    will read alongside your review.
+  </div>
+  {% endif %}
+
+  <ul class="list-group list-group-flush">
+    {% for goal in goals %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ goal.title }}</div>
+          {% if goal.description %}<div class="text-muted small mt-1">{{ goal.description }}</div>{% endif %}
+          <div class="mt-1">{{ m.due(goal.target_date) }}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <form method="post" action="/me/goals/{{ goal.id }}/status">
+            {{ m.status_select(statuses, goal.status, extra='onchange="this.form.submit()"') }}
+            <noscript><button class="btn btn-sm btn-outline-primary mt-1">Set</button></noscript>
+          </form>
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-{{ goal.id }}" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="collapse mt-3" id="edit-{{ goal.id }}">
+        <form method="post" action="/me/goals/{{ goal.id }}/edit" class="row g-2">
+          <div class="col-md-6">
+            <input class="form-control form-control-sm" name="title" required maxlength="200" value="{{ goal.title }}">
+          </div>
+          <div class="col-md-3">
+            <input class="form-control form-control-sm" type="date" name="target_date"
+                   value="{{ goal.target_date.isoformat() if goal.target_date else '' }}">
+          </div>
+          <div class="col-md-3">{{ m.status_select(statuses, goal.status) }}</div>
+          <div class="col-12">
+            <textarea class="form-control form-control-sm" name="description" rows="2">{{ goal.description or '' }}</textarea>
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-sm btn-primary">Save</button>
+          </div>
+        </form>
+        <form method="post" action="/me/goals/{{ goal.id }}/delete" class="mt-2"
+              onsubmit="return confirm('Delete “{{ goal.title }}”? This can\'t be undone.')">
+          <button class="btn btn-sm btn-outline-danger">Delete goal</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="text-center text-muted small">
+  <a href="/">See the team's goals for this season →</a>
+</div>
+
+{% endblock %}

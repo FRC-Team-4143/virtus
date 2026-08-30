@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings — Virtus{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Settings</h3>
+<p class="text-muted small">These are set in the app's <code>.env</code> and shown here read-only.</p>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <tbody>
+        <tr><td>Current season</td><td>{{ settings.current_season }}</td></tr>
+        <tr><td>Automated updates</td><td>{% if settings.updates_enabled %}<span class="badge" style="background:#cc2200;">On</span>{% else %}<span class="badge bg-secondary">Off</span>{% endif %}</td></tr>
+        <tr><td>Timezone</td><td>{{ settings.timezone }}</td></tr>
+        <tr><td>Review reminder window</td><td>{{ settings.review_reminder_days }} day(s) before a cycle closes</td></tr>
+        <tr><td>Required personal goals</td><td>{% if settings.required_personal_goals %}{{ settings.required_personal_goals }} per student per season{% else %}not required{% endif %}</td></tr>
+        <tr><td>Announce channel</td><td>{{ settings.slack_announce_channel or '—' }}</td></tr>
+        <tr><td>Legion</td><td>{{ settings.legion_base_url or 'not configured' }}</td></tr>
+        <tr><td>Slack</td><td>{% if settings.slack_bot_token %}configured{% else %}not configured{% endif %}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block title %}Not allowed — Virtus{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-6" style="color:#cc2200;">403</h1>
+  <p class="text-muted">You don't have access to this area. You need the
+    <code>virtus-admin</code> or <code>virtus-manager</code> group in Legion.</p>
+  <a href="/me" class="btn btn-outline-primary">Back to my goals</a>
+</div>
+{% endblock %}

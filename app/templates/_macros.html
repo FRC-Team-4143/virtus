@@ -1,0 +1,31 @@
+{# Shared render helpers. Imported by both the admin and portal templates so a status
+   always looks and reads the same on either side of the app. #}
+
+{% macro status_chip(status) %}
+<span class="chip chip-{{ status.value }}">{{ status.value.replace('_', ' ')|title }}</span>
+{% endmacro %}
+
+{% macro status_select(statuses, current, name='status', extra='') %}
+<select class="form-select form-select-sm" name="{{ name }}" {{ extra|safe }}>
+  {% for s in statuses %}
+  <option value="{{ s.value }}" {% if current and s == current %}selected{% endif %}>{{ s.value.replace('_', ' ')|title }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{# A 1-5 score on the red→blue rainbow, or an em dash when the question wasn't answered.
+   `labels` is SCORE_LABELS; the colour comes from `.score-N` in the base templates. #}
+{% macro score(value, labels) %}
+{% if value %}<span class="score-pill score-{{ value }}" title="{{ value }} · {{ labels[value] }}">{{ value }}</span>
+{% else %}<span class="text-muted">—</span>{% endif %}
+{% endmacro %}
+
+{% macro review_state(review, ReviewStatus) %}
+{% if not review %}<span class="chip chip-not_started">Not started</span>
+{% elif review.status == ReviewStatus.submitted %}<span class="chip chip-submitted">Submitted</span>
+{% else %}<span class="chip chip-draft">Draft</span>{% endif %}
+{% endmacro %}
+
+{% macro due(target_date) %}
+{% if target_date %}<span class="text-muted small">due {{ target_date.strftime('%b %d') }}</span>{% endif %}
+{% endmacro %}

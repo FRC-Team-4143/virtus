@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}
+{% block title %}Sign-in unavailable — Virtus{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body text-center p-4">
+        <h4 class="mb-3"><i class="bi bi-exclamation-triangle text-warning"></i></h4>
+        <p>One-tap sign-in is temporarily unavailable. Please try again in a moment, or
+        sign in through Legion directly.</p>
+        <a href="/me" class="btn btn-outline-primary">Back</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block title %}Backup — Virtus{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Backup &amp; Restore</h3>
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if not is_sqlite %}
+<div class="alert alert-warning">Backups are only supported for SQLite databases.</div>
+{% else %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card"><div class="card-body">
+      <h6>Snapshots</h6>
+      <form method="post" action="/admin/backup/snapshot" class="mb-3">
+        <button class="btn btn-sm btn-primary"><i class="bi bi-camera me-1"></i> Take a snapshot now</button>
+      </form>
+      <table class="table table-sm mb-0">
+        <tbody>
+        {% for b in backups %}
+          <tr>
+            <td>{{ b.name }}</td>
+            <td class="text-muted small">{{ b.size_kb }} KB</td>
+            <td class="text-end"><a href="/admin/backup/download/{{ b.name }}" class="btn btn-sm btn-outline-secondary">Download</a></td>
+          </tr>
+        {% else %}
+          <tr><td class="text-muted">No snapshots yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card"><div class="card-body">
+      <h6>Restore</h6>
+      <p class="text-muted small">Upload a backup file. It's validated and applied on the next restart.</p>
+      <form method="post" action="/admin/backup/restore" enctype="multipart/form-data">
+        <input type="file" name="file" class="form-control mb-2" required>
+        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Stage this backup for restore on next restart?');">Stage restore</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

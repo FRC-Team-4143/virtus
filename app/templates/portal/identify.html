@@ -1,0 +1,25 @@
+{% extends "portal/base.html" %}
+{% block title %}Sign in — Virtus{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body text-center p-4">
+        <h4 class="mb-1" style="color:#cc2200; font-style:italic;">Virtus</h4>
+        <p class="text-muted">Team goals, your goals, and performance reviews</p>
+        {% if not_synced %}
+        <div class="alert alert-warning py-2 small">
+          You're signed in as <strong>{{ signed_in_name }}</strong>, but you're not on the
+          Virtus roster yet. Ask an admin to sync the roster, then reload.
+        </div>
+        <a href="/me" class="btn btn-outline-primary">Reload</a>
+        {% else %}
+        <p>Sign in with your Legion account to see your goals and reviews.</p>
+        <a href="{{ authorize_url }}" class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-1"></i> Sign in with Legion</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

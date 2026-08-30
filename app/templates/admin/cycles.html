@@ -1,0 +1,70 @@
+{% extends "admin/base.html" %}
+{% block title %}Review Cycles · Virtus{% endblock %}
+{% block content %}
+
+<h3 class="mb-4">Review Cycles</h3>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header">Start a cycle</div>
+  <form method="post" action="/admin/cycles" class="card-body row g-2">
+    <div class="col-md-5">
+      <label class="form-label small text-muted">Name</label>
+      <input class="form-control" name="name" required maxlength="200" placeholder="e.g. {{ season }} Build Season Midpoint">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted">Season</label>
+      <input class="form-control" name="season" value="{{ season }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted">Opens</label>
+      <input class="form-control" type="date" name="opens_at">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted">Closes</label>
+      <input class="form-control" type="date" name="closes_at">
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary btn-sm mt-2">Create as draft</button>
+      <span class="form-text ms-2">
+        Every active student is added straight away. Assign reviewers, then open it.
+      </span>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-dark align-middle mb-0">
+      <thead>
+        <tr><th>Cycle</th><th>Season</th><th>Status</th><th>Window</th><th>Progress</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="/admin/cycles/{{ row.cycle.id }}">{{ row.cycle.name }}</a></td>
+          <td class="text-muted">{{ row.cycle.season }}</td>
+          <td><span class="chip chip-{{ row.cycle.status.value }}">{{ row.cycle.status.value|title }}</span></td>
+          <td class="text-muted small">
+            {{ row.cycle.opens_at|localdate or '—' }} → {{ row.cycle.closes_at|localdate or '—' }}
+          </td>
+          <td style="min-width:12rem;">
+            <div class="d-flex justify-content-between small">
+              <span>{{ row.stats.both_done }}/{{ row.stats.total }}</span>
+              <span class="text-muted">{{ row.stats.percent }}%</span>
+            </div>
+            <div class="progress" style="height:.35rem; background:#2a1a1a;">
+              <div class="progress-bar" style="width: {{ row.stats.percent }}%; background:#cc2200;"></div>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No cycles yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

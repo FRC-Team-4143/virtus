@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Team Goals · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h3 class="mb-0">Team Goals</h3>
+  <form method="get" class="d-flex gap-2">
+    <select class="form-select form-select-sm" name="season" onchange="this.form.submit()">
+      {% for s in seasons %}<option value="{{ s }}" {% if s == season %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <select class="form-select form-select-sm" name="team" onchange="this.form.submit()">
+      <option value="">All teams</option>
+      {% for t in teams %}<option value="{{ t.value }}" {% if t == team_filter %}selected{% endif %}>{{ t.label }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn btn-sm btn-outline-primary">Go</button></noscript>
+  </form>
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header">Add a goal</div>
+  <form method="post" action="/admin/team-goals" class="card-body">
+    <input type="hidden" name="season" value="{{ season }}">
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Goal</label>
+        <input class="form-control" name="title" required maxlength="200" placeholder="e.g. Win a regional blue banner">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted">Category</label>
+        <select class="form-select" name="category">
+          {% for c in categories %}<option value="{{ c.value }}">{{ c.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted">Team</label>
+        <select class="form-select" name="team">
+          {% for t in teams %}<option value="{{ t.value }}" {% if t == (team_filter or default_team) %}selected{% endif %}>{{ t.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted">Target date</label>
+        <input class="form-control" type="date" name="target_date">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted">Status</label>
+        {{ m.status_select(statuses, none) }}
+      </div>
+      <div class="col-12">
+        <label class="form-label small text-muted">Description <span class="text-muted">(optional)</span></label>
+        <textarea class="form-control" name="description" rows="2"></textarea>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm mt-3">Add goal</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    {{ season }} goals ({{ goals|length }}){% if team_filter %} · {{ team_filter.label }}{% endif %}
+  </div>
+  {% if not goals %}
+  <div class="card-body text-center text-muted py-5">Nothing here yet.</div>
+  {% else %}
+  <ul class="list-group list-group-flush">
+    {% for goal in goals %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ goal.title }}</div>
+          <div class="text-muted small">
+            {{ goal.category.label }} · {{ goal.team.label }}
+            {% if goal.target_date %} · due {{ goal.target_date.strftime('%b %d, %Y') }}{% endif %}
+          </div>
+          {% if goal.description %}<div class="text-muted small mt-1">{{ goal.description }}</div>{% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <form method="post" action="/admin/team-goals/{{ goal.id }}/status">
+            {{ m.status_select(statuses, goal.status, extra='onchange="this.form.submit()"') }}
+            <noscript><button class="btn btn-sm btn-outline-primary mt-1">Set</button></noscript>
+          </form>
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-{{ goal.id }}" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="collapse mt-3" id="edit-{{ goal.id }}">
+        <form method="post" action="/admin/team-goals/{{ goal.id }}/edit" class="row g-2">
+          <div class="col-md-4"><input class="form-control form-control-sm" name="title" required value="{{ goal.title }}"></div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" name="category">
+              {% for c in categories %}<option value="{{ c.value }}" {% if c == goal.category %}selected{% endif %}>{{ c.label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" name="team">
+              {% for t in teams %}<option value="{{ t.value }}" {% if t == goal.team %}selected{% endif %}>{{ t.label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input class="form-control form-control-sm" type="date" name="target_date"
+                   value="{{ goal.target_date.isoformat() if goal.target_date else '' }}">
+          </div>
+          <div class="col-md-2">{{ m.status_select(statuses, goal.status) }}</div>
+          <div class="col-12"><textarea class="form-control form-control-sm" name="description" rows="2">{{ goal.description or '' }}</textarea></div>
+          <div class="col-12"><button class="btn btn-sm btn-primary">Save</button></div>
+        </form>
+        <form method="post" action="/admin/team-goals/{{ goal.id }}/delete" class="mt-2"
+              onsubmit="return confirm('Delete “{{ goal.title }}”? This can\'t be undone.')">
+          <button class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "admin/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ member.name }} · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+  <div>
+    <h3 class="mb-1">{{ member.name }}</h3>
+    <div class="text-muted small">
+      {{ member.subteam_display }}
+      {% if member.grade %} · {{ member.grade }}{% endif %}
+      {% if member.graduation_year %} · class of {{ member.graduation_year }}{% endif %}
+      {% if member.team_number %} · {{ member.team_number }}{% endif %}
+      {% if not member.is_active %} · <span class="text-warning">inactive</span>{% endif %}
+    </div>
+  </div>
+  <a class="btn btn-sm btn-outline-secondary" href="/admin/roster">Roster</a>
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header">Goals ({{ goals|length }})</div>
+  {% if not goals %}
+  <div class="card-body text-muted">No goals set. Students add their own at <code>/me</code>.</div>
+  {% else %}
+  <ul class="list-group list-group-flush">
+    {% for goal in goals %}
+    <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <div>{{ goal.title }} <span class="text-muted small">· {{ goal.season }}</span></div>
+        {% if goal.description %}<div class="text-muted small mt-1">{{ goal.description }}</div>{% endif %}
+      </div>
+      <div class="text-end flex-shrink-0">
+        {{ m.status_chip(goal.status) }}
+        <div class="mt-1">{{ m.due(goal.target_date) }}</div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+<h5 class="mb-3">Review history</h5>
+
+{% if not history %}
+<div class="card"><div class="card-body text-center text-muted py-4">
+  Not part of any review cycle yet.
+</div></div>
+{% endif %}
+
+{% for h in history %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <a href="/admin/cycles/{{ h.cycle.id }}">{{ h.cycle.name }}</a>
+    <span class="fw-normal small">
+      <span class="text-muted">reviewer:</span>
+      {{ h.assignment.reviewer.name if h.assignment.reviewer else '—' }}
+      <span class="ms-2">{{ m.review_state(h.self_review, ReviewStatus) }}</span>
+      <span>{{ m.review_state(h.reviewer_review, ReviewStatus) }}</span>
+    </span>
+  </div>
+
+  {% if not (h.self_review and h.self_review.status == ReviewStatus.submitted)
+        and not (h.reviewer_review and h.reviewer_review.status == ReviewStatus.submitted) %}
+  <div class="card-body text-muted">Nothing submitted yet.</div>
+  {% else %}
+  <div class="table-responsive">
+    <table class="table table-dark table-sm align-middle mb-0">
+      <thead><tr>
+        <th>Competency</th>
+        <th class="text-center" style="width:6rem;">Self</th>
+        <th class="text-center" style="width:6rem;">Reviewer</th>
+        <th class="text-center" style="width:5rem;">Gap</th>
+      </tr></thead>
+      <tbody>
+        {% for row in h.rows %}
+        <tr>
+          <td>
+            <div>{{ row.competency.name }}</div>
+            {% if row.self_comment %}<div class="text-muted small mt-1"><em>Self:</em> {{ row.self_comment }}</div>{% endif %}
+            {% if row.reviewer_comment %}<div class="text-muted small mt-1"><em>Reviewer:</em> {{ row.reviewer_comment }}</div>{% endif %}
+          </td>
+          <td class="text-center">{{ m.score(row.self_score, score_labels) }}</td>
+          <td class="text-center">{{ m.score(row.reviewer_score, score_labels) }}</td>
+          <td class="text-center">
+            {% if row.delta is not none and row.delta != 0 %}
+            <span class="{% if row.delta > 0 %}text-success{% else %}text-warning{% endif %}">{{ '+' if row.delta > 0 }}{{ row.delta }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card-body border-top" style="border-color:#2a1a1a !important;">
+    <div class="row g-4">
+      {% for label, review in [('Self-review', h.self_review), ('Reviewer', h.reviewer_review)] %}
+      <div class="col-md-6">
+        <div class="fw-semibold small text-muted mb-2">{{ label }}</div>
+        {% if not review or review.status != ReviewStatus.submitted %}
+        <div class="text-muted">Not submitted.</div>
+        {% else %}
+        {% if review.strengths %}<div class="small text-muted">Going well</div><p>{{ review.strengths }}</p>{% endif %}
+        {% if review.growth_areas %}<div class="small text-muted">Where to grow</div><p>{{ review.growth_areas }}</p>{% endif %}
+        {% if review.overall_comment %}<div class="small text-muted">Other notes</div><p class="mb-0">{{ review.overall_comment }}</p>{% endif %}
+        {% if label == 'Reviewer' and h.show_private_notes and review.private_notes %}
+        <div class="small text-warning mt-2"><i class="bi bi-eye-slash"></i> Private notes <span class="text-muted">— staff only, not shown to {{ member.name.split()[0] }}</span></div>
+        <p class="mb-0" style="white-space:pre-wrap;">{{ review.private_notes }}</p>
+        {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

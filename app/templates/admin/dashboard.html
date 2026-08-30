@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Dashboard · Virtus{% endblock %}
+{% block content %}
+
+<h3 class="mb-4">Dashboard <span class="text-muted fs-6">{{ season }} season</span></h3>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Team goals</div>
+      <div class="fs-3 fw-bold">{{ team_goals|length }}</div>
+      <div class="text-muted small">{{ done_count }} done</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">At risk</div>
+      <div class="fs-3 fw-bold {% if at_risk %}text-warning{% endif %}">{{ at_risk|length }}</div>
+      <div class="text-muted small">need attention</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Open cycles</div>
+      <div class="fs-3 fw-bold">{{ open_cycles|length }}</div>
+      <div class="text-muted small">accepting reviews</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Unassigned</div>
+      <div class="fs-3 fw-bold {% if open_cycles|sum(attribute='stats.unassigned') %}text-warning{% endif %}">
+        {{ open_cycles|sum(attribute='stats.unassigned') }}
+      </div>
+      <div class="text-muted small">students with no reviewer</div>
+    </div></div>
+  </div>
+</div>
+
+{% for row in open_cycles %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <a href="/admin/cycles/{{ row.cycle.id }}">{{ row.cycle.name }}</a>
+    <span class="text-muted small fw-normal">
+      {% if row.cycle.closes_at %}closes {{ row.cycle.closes_at|localdate }}{% else %}no close date{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="d-flex justify-content-between small mb-1">
+      <span>{{ row.stats.both_done }} of {{ row.stats.total }} complete</span>
+      <span class="text-muted">{{ row.stats.percent }}%</span>
+    </div>
+    <div class="progress" style="height:.5rem; background:#2a1a1a;">
+      <div class="progress-bar" style="width: {{ row.stats.percent }}%; background:#cc2200;"></div>
+    </div>
+    <div class="text-muted small mt-2">
+      Self-reviews {{ row.stats.self_done }}/{{ row.stats.total }} ·
+      Reviewer reviews {{ row.stats.reviewer_done }}/{{ row.stats.total }}
+      {% if row.stats.unassigned %} · <span class="text-warning">{{ row.stats.unassigned }} unassigned</span>{% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card mb-3"><div class="card-body text-center text-muted py-4">
+  No open review cycles. <a href="/admin/cycles">Start one</a>.
+</div></div>
+{% endfor %}
+
+{% if at_risk %}
+<div class="card">
+  <div class="card-header">Team goals at risk</div>
+  <ul class="list-group list-group-flush">
+    {% for goal in at_risk %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <span>{{ goal.title }}</span>
+      <span>{{ m.due(goal.target_date) }} {{ m.status_chip(goal.status) }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% endblock %}

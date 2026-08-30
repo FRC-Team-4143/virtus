@@ -1,0 +1,42 @@
+{% extends "portal/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Reviews I Owe · Virtus{% endblock %}
+{% block content %}
+
+<h3 class="mb-1">Reviews I owe</h3>
+<div class="text-muted mb-4">
+  Teammates you've been assigned as reviewer for. You don't need admin access to write these.
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if not assignments %}
+<div class="card"><div class="card-body text-center text-muted py-5">
+  Nothing assigned to you right now.
+</div></div>
+{% else %}
+<div class="card">
+  <ul class="list-group list-group-flush">
+    {% for a in assignments %}
+    {% set r = a.review_of(ReviewKind.reviewer) %}
+    <li class="list-group-item d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <div>
+        <div class="fw-semibold">{{ a.member.name }}</div>
+        <div class="text-muted small">
+          {{ a.subteam_label or a.member.subteam_display }} · {{ a.cycle.name }}
+          {% if a.cycle.closes_at %} · closes {{ a.cycle.closes_at|localdate }}{% endif %}
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        {{ m.review_state(r, ReviewStatus) }}
+        {% if not (r and r.status == ReviewStatus.submitted) %}
+        <a class="btn btn-sm btn-primary" href="/me/reviews/{{ a.id }}">{% if r %}Continue{% else %}Write{% endif %}</a>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% endblock %}

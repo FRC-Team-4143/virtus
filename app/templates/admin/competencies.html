@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+{% block title %}Competencies · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+  <h3 class="mb-0">Competencies</h3>
+  <a class="btn btn-sm btn-outline-secondary"
+     href="/admin/competencies{% if not show_archived %}?show_archived=1{% endif %}">
+    {% if show_archived %}Hide{% else %}Show{% endif %} archived
+  </a>
+</div>
+<p class="text-muted">
+  The dimensions every review rates, on a {{ score_labels|length }}-point scale:
+  {% for v, l in score_labels.items() %}<span class="score-pill score-{{ v }}" title="{{ l }}">{{ v }}</span>&nbsp;{{ l }}{% if not loop.last %} · {% endif %}{% endfor %}.
+  Opening a cycle freezes this list onto it, so editing here only affects
+  <em>future</em> cycles — a review already written keeps the wording it was written against.
+</p>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header">Add a competency</div>
+  <form method="post" action="/admin/competencies" class="card-body row g-2">
+    <div class="col-md-4">
+      <label class="form-label small text-muted">Name</label>
+      <input class="form-control" name="name" required maxlength="120">
+    </div>
+    <div class="col-md-8">
+      <label class="form-label small text-muted">What it means <span class="text-muted">(optional)</span></label>
+      <input class="form-control" name="description" placeholder="Shown under the name on the review form.">
+    </div>
+    <div class="col-12"><button class="btn btn-primary btn-sm mt-2">Add</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-dark align-middle mb-0">
+      <thead><tr><th style="width:5rem;">Order</th><th>Name</th><th>Description</th><th style="width:12rem;"></th></tr></thead>
+      <tbody>
+        {% for c in competencies %}
+        {# A <form> can't be a child of <tr>, so each row's form lives outside the table
+           and its inputs point at it by id. #}
+        <tr {% if not c.is_active %}class="opacity-50"{% endif %}>
+          <td><input class="form-control form-control-sm" type="number" name="sort_order"
+                     form="edit-{{ c.id }}" value="{{ c.sort_order }}" style="width:4.5rem;"></td>
+          <td><input class="form-control form-control-sm" name="name" required
+                     form="edit-{{ c.id }}" value="{{ c.name }}"></td>
+          <td><input class="form-control form-control-sm" name="description"
+                     form="edit-{{ c.id }}" value="{{ c.description or '' }}"></td>
+          <td class="text-end text-nowrap">
+            <button class="btn btn-sm btn-outline-primary" form="edit-{{ c.id }}">Save</button>
+            <button class="btn btn-sm btn-outline-secondary" form="archive-{{ c.id }}">
+              {% if c.is_active %}Archive{% else %}Restore{% endif %}
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-4">
+          No competencies. A cycle can't be opened without at least one.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% for c in competencies %}
+<form id="edit-{{ c.id }}" method="post" action="/admin/competencies/{{ c.id }}/edit"></form>
+<form id="archive-{{ c.id }}" method="post" action="/admin/competencies/{{ c.id }}/archive"></form>
+{% endfor %}
+
+<p class="text-muted small mt-3">
+  There's no delete — archiving keeps the wording readable for every past cycle that used
+  it, and gives one unambiguous way to take a competency out of rotation.
+</p>
+
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "portal/base.html" %}
+{% import "_macros.html" as m %}
+{% set is_self = kind.value == 'self' %}
+{% block title %}{% if is_self %}Self-Review{% else %}Review of {{ subject.name }}{% endif %} · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+  <div>
+    <h3 class="mb-1">{% if is_self %}Your self-review{% else %}Review of {{ subject.name }}{% endif %}</h3>
+    <div class="text-muted">{{ cycle.name }}{% if cycle.closes_at %} · closes {{ cycle.closes_at|localdate }}{% endif %}</div>
+  </div>
+  <a class="btn btn-sm btn-outline-secondary" href="{% if is_self %}/me{% else %}/me/reviews{% endif %}">Back</a>
+</div>
+
+{% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+<div class="alert alert-secondary py-2 small">
+  {% if is_self %}
+    Rate yourself honestly — your reviewer answers this same form, and you'll see the two
+    side by side. Gaps between them are the conversation worth having.
+  {% else %}
+    {{ subject.name }} is answering this same form about themselves. Nothing you write is
+    visible to them until you submit.
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" action="{% if is_self %}/me/review/{{ cycle.id }}{% else %}/me/reviews/{{ assignment.id }}{% endif %}">
+      <div class="card mb-4">
+        <div class="card-header">Competencies</div>
+        <div class="card-body">
+          {% for rating in ratings %}
+          <div class="{% if not loop.last %}mb-4 pb-4 border-bottom{% endif %}" style="border-color:#2a1a1a !important;">
+            <div class="fw-semibold">{{ rating.competency.name }}</div>
+            {% if rating.competency.description %}
+            <div class="text-muted small mb-2">{{ rating.competency.description }}</div>
+            {% endif %}
+            <div class="btn-group flex-wrap mb-2" role="group">
+              {% for value, label in score_labels.items() %}
+              <input type="radio" class="btn-check" name="score_{{ rating.cycle_competency_id }}"
+                     id="s{{ rating.id }}-{{ value }}" value="{{ value }}"
+                     {% if rating.score == value %}checked{% endif %}>
+              <label class="btn btn-sm score-choice score-choice-{{ value }}" for="s{{ rating.id }}-{{ value }}">
+                {{ value }} · {{ label }}
+              </label>
+              {% endfor %}
+            </div>
+            <textarea class="form-control form-control-sm" rows="2"
+                      name="comment_{{ rating.cycle_competency_id }}"
+                      placeholder="Optional — an example that shows why.">{{ rating.comment or '' }}</textarea>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">In your own words</div>
+        <div class="card-body">
+          <label class="form-label small text-muted">
+            {% if is_self %}What went well?{% else %}What is {{ subject.name.split()[0] }} doing well?{% endif %}
+          </label>
+          <textarea class="form-control mb-3" name="strengths" rows="3">{{ review.strengths or '' }}</textarea>
+
+          <label class="form-label small text-muted">
+            {% if is_self %}Where do you want to grow?{% else %}Where should they grow next?{% endif %}
+          </label>
+          <textarea class="form-control mb-3" name="growth_areas" rows="3">{{ review.growth_areas or '' }}</textarea>
+
+          <label class="form-label small text-muted">Anything else <span class="text-muted">(optional)</span></label>
+          <textarea class="form-control" name="overall_comment" rows="2">{{ review.overall_comment or '' }}</textarea>
+
+          {% if not is_self %}
+          <hr class="my-3" style="border-color:#2a1a1a;">
+          <label class="form-label small text-muted">
+            <i class="bi bi-eye-slash"></i> Private notes
+            <span class="text-muted">— only you and staff, never shown to {{ subject.name.split()[0] }}</span>
+          </label>
+          <textarea class="form-control" name="private_notes" rows="3"
+                    placeholder="For the record with staff — kept out of {{ subject.name.split()[0] }}'s feedback.">{{ review.private_notes or '' }}</textarea>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-primary" name="action" value="save">Save draft</button>
+        <button class="btn btn-primary" name="action" value="submit"
+                onclick="return confirm('Submit this review? You won\'t be able to edit it afterwards.')">
+          Submit review
+        </button>
+      </div>
+      <div class="form-text mt-2">
+        A draft is private to you. Submitting makes it visible to
+        {% if is_self %}staff{% else %}{{ subject.name }} and staff{% endif %} — and locks it.
+        {% if not is_self %}Private notes are never shown to {{ subject.name.split()[0] }}, before or after.{% endif %}
+      </div>
+    </form>
+  </div>
+
+  {# The subject's own goals, as context while writing. Read-only. #}
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{% if is_self %}Your goals{% else %}{{ subject.name.split()[0] }}'s goals{% endif %}</span>
+        {% if required_goals %}
+        <span class="small fw-normal {% if goals|length >= required_goals %}text-muted{% else %}text-warning{% endif %}">
+          {{ goals|length }} / {{ required_goals }}
+        </span>
+        {% endif %}
+      </div>
+      {% if required_goals and goals|length < required_goals %}
+      <div class="card-body py-2 small text-warning border-bottom" style="border-color:#2a1a1a !important;">
+        {% if is_self %}
+        You need {{ required_goals }} goals for this season before you can submit —
+        <a href="/me">add {{ required_goals - goals|length }} more</a>.
+        {% else %}
+        {{ subject.name.split()[0] }} is short of the {{ required_goals }}-goal minimum for this season.
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if goals %}
+      <ul class="list-group list-group-flush">
+        {% for goal in goals %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="small fw-semibold">{{ goal.title }}</div>
+            {{ m.status_chip(goal.status) }}
+          </div>
+          {% if goal.description %}
+          <div class="text-muted small mt-1" style="white-space:pre-wrap;">{{ goal.description }}</div>
+          {% endif %}
+          {% if goal.target_date %}<div class="mt-1">{{ m.due(goal.target_date) }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="card-body text-muted small">No goals set for this season.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

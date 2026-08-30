@@ -1,0 +1,96 @@
+{% extends "portal/base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ cycle.name }} Results · Virtus{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+  <div>
+    <h3 class="mb-1">{{ cycle.name }}</h3>
+    <div class="text-muted">{{ subject.name }}{% if assignment.reviewer %} · reviewed by {{ assignment.reviewer.name }}{% endif %}</div>
+  </div>
+  <div class="d-flex gap-2">
+    {% if can_edit_self and not (self_review and self_review.is_submitted) %}
+    <a class="btn btn-sm btn-primary" href="/me/review/{{ cycle.id }}">Finish your self-review</a>
+    {% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="/me">Back</a>
+  </div>
+</div>
+
+{% if message %}<div class="alert alert-secondary py-2">{{ message }}</div>{% endif %}
+
+{% if not reviewer_review %}
+<div class="alert alert-secondary py-2 small">
+  Your reviewer hasn't submitted yet — their side will appear here once they do.
+</div>
+{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header">Side by side</div>
+  <div class="table-responsive">
+    <table class="table table-dark table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Competency</th>
+          <th class="text-center" style="width:7rem;">Self</th>
+          <th class="text-center" style="width:7rem;">Reviewer</th>
+          <th class="text-center" style="width:5rem;">Gap</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>
+            <div>{{ row.competency.name }}</div>
+            {% if row.self_comment %}<div class="text-muted small mt-1"><em>You:</em> {{ row.self_comment }}</div>{% endif %}
+            {% if row.reviewer_comment %}<div class="text-muted small mt-1"><em>Reviewer:</em> {{ row.reviewer_comment }}</div>{% endif %}
+          </td>
+          <td class="text-center">{{ m.score(row.self_score, score_labels) }}</td>
+          <td class="text-center">{{ m.score(row.reviewer_score, score_labels) }}</td>
+          <td class="text-center">
+            {% if row.delta is not none and row.delta != 0 %}
+              <span class="{% if row.delta > 0 %}text-success{% else %}text-warning{% endif %}">
+                {{ '+' if row.delta > 0 }}{{ row.delta }}
+              </span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-body border-top text-muted small" style="border-color:#2a1a1a !important;">
+    Gap is reviewer minus self. A positive number means they rated you higher than you rated
+    yourself.
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for label, review in [('Your self-review', self_review), ('Your reviewer', reviewer_review)] %}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header">{{ label }}</div>
+      <div class="card-body">
+        {% if not review %}
+        <div class="text-muted">Not submitted yet.</div>
+        {% else %}
+        <div class="text-muted small mb-3">Submitted {{ review.submitted_at|localdt }}</div>
+        {% if review.strengths %}
+        <div class="fw-semibold small text-muted">Going well</div>
+        <p>{{ review.strengths }}</p>
+        {% endif %}
+        {% if review.growth_areas %}
+        <div class="fw-semibold small text-muted">Where to grow</div>
+        <p>{{ review.growth_areas }}</p>
+        {% endif %}
+        {% if review.overall_comment %}
+        <div class="fw-semibold small text-muted">Other notes</div>
+        <p class="mb-0">{{ review.overall_comment }}</p>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

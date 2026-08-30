@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+venv/
+.env
+.env.*
+!.env.example
+*.db
+.pytest_cache/
+data/
+backups/
+preview/
+devlogin.py

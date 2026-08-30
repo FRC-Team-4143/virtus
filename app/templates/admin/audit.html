@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}Audit Log — Virtus{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Audit Log</h3>
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Summary</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td class="text-muted small">{{ r.timestamp|localdt }}</td>
+          <td>{{ r.actor }}</td>
+          <td class="text-muted"><code>{{ r.action }}</code></td>
+          <td>{{ r.summary }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted text-center py-4">No activity yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
