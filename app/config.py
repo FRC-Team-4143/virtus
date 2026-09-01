@@ -50,12 +50,6 @@ class Settings(BaseSettings):
     # 0 disables the requirement entirely.
     required_personal_goals: int = 2
 
-    # Dev / preview sign-in shim. When set, mounts `/dev-login` (see routers/dev_login.py),
-    # which mints an `mw_sso` cookie for THIS host — needed only on a preview deploy where
-    # Legion's real cookie (scoped to .marswars.org) can't reach. MUST stay unset in
-    # production; every /dev-login request has to present this exact value.
-    dev_login_secret: str = ""
-
     # Database backups (SQLite only)
     backup_dir: str = "backups"
     backup_keep: int = 14  # number of snapshots to retain

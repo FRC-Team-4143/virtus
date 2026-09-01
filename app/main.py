@@ -6,7 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.database import get_db, init_db
 from app.routers import portal, admin, slack
 from app.services.scheduler import create_scheduler
@@ -29,12 +28,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(portal.router)
 app.include_router(admin.router)
 app.include_router(slack.router)
-
-# Preview deploys only — see routers/dev_login.py. Unset in production ⇒ never mounted.
-if settings.dev_login_secret:
-    from app.routers import dev_login
-    app.include_router(dev_login.router)
-    print("⚠️  Virtus /dev-login is ENABLED — this must not be a production config.")
 
 
 @app.get("/health")

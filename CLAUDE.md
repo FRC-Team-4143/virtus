@@ -31,12 +31,6 @@ The gitignored `devlogin.py` helper mints one signed with Virtus's own `SSO_SECR
 redirects into the app — run it on another port (`uvicorn devlogin:app --port 8007`) and
 hit `/login?code=<member_code>&groups=virtus-admin`. It touches no app code.
 
-For a **preview deploy on a non-`marswars.org` host** (where Legion's real cookie can't
-reach), set `DEV_LOGIN_SECRET` in `.env`: that mounts `routers/dev_login.py` at
-`/dev-login`, which does the same job as `devlogin.py` but in-process —
-`/dev-login?key=<DEV_LOGIN_SECRET>&code=<member_code>&groups=virtus-admin`. Unset in
-production ⇒ the router is never imported.
-
 ## Testing
 
 ```bash
