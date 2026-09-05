@@ -70,6 +70,12 @@
     .btn-check:checked + .score-choice-4 { background:#14361f; }
     .btn-check:checked + .score-choice-5 { background:#0f2a3d; }
     .btn-check:focus-visible + .score-choice { outline:2px solid currentColor; outline-offset:1px; }
+    .stepup-bar {
+      background:#1a0f0f; border:1px solid rgba(204,34,0,0.4); border-radius:10px;
+      padding:.6rem .9rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+    }
+    .stepup-bar .stepup-msg { color:#9a7878; font-size:.9rem; flex:1 1 240px; }
+    .stepup-bar > .bi { color:#e05540; }
   </style>
   {% block head %}{% endblock %}
 </head>
@@ -102,6 +108,18 @@
     </ul>
   </div>
 </nav>
+{% set stepup_identity = session_identity(request) %}
+{% if stepup_identity and stepup_identity.via == 'link' and legion_base_url() %}
+<div class="container mb-4">
+  <div class="stepup-bar">
+    <i class="bi bi-shield-lock"></i>
+    <span class="stepup-msg">You opened Virtus from a Slack quick link — you're in limited mode, so admin tools stay hidden.</span>
+    <a class="btn btn-outline-primary btn-sm" href="{{ stepup_url(request) }}">
+      <i class="bi bi-box-arrow-in-right me-1"></i>Sign in with Legion
+    </a>
+  </div>
+</div>
+{% endif %}
 <main class="container pb-5">
   {% block content %}{% endblock %}
 </main>
