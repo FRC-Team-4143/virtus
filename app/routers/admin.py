@@ -35,6 +35,7 @@ from app.services.legion_sync import LegionSyncError, sync_roster
 from app.services.notify import notify_cycle_opened, notify_outstanding
 from app.services.sso import (
     is_admin, is_link_identity, is_staff, logout_url, make_authorize_url, sso_identity,
+    stepup_url,
 )
 from app.templating import templates
 
@@ -99,11 +100,16 @@ def _require_auth(request: Request):
     says. A magic-link identity carries no groups by construction, so it already fails
     every check below — but it's treated as "not signed in strongly enough" rather than
     "not allowed", since the person may well be an admin who just arrived from a Slack
-    link. Send them to a real sign-in instead of stranding them on a 403.
+    link. Send them through the step-up (fresh Approve/Deny, re-mint with groups, back to
+    this page) instead of stranding them on a 403.
     """
     identity = sso_identity(request)
-    if identity is None or is_link_identity(identity):
+    if identity is None:
         return RedirectResponse(make_authorize_url(request), status_code=303)
+    if is_link_identity(identity):
+        return RedirectResponse(
+            stepup_url(request, return_to=request.url.path), status_code=303
+        )
     groups = set(identity.get("groups") or [])
     if _ADMIN_GROUP in groups:
         return None
