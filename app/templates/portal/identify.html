@@ -1,24 +1,30 @@
 {% extends "portal/base.html" %}
 {% block title %}Sign in — Virtus{% endblock %}
+{% block nav %}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-6 col-lg-5">
-    <div class="card">
-      <div class="card-body text-center p-4">
-        <h4 class="mb-1" style="color:#cc2200; font-style:italic;">Virtus</h4>
-        <p class="text-muted">Team goals, your goals, and performance reviews</p>
-        {% if not_synced %}
-        <div class="alert alert-warning py-2 small">
-          You're signed in as <strong>{{ signed_in_name }}</strong>, but you're not on the
-          Virtus roster yet. Ask an admin to sync the roster, then reload.
-        </div>
-        <a href="/me" class="btn btn-outline-primary">Reload</a>
-        {% else %}
-        <p>Sign in with your Legion account to see your goals and reviews.</p>
-        <a href="{{ authorize_url }}" class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-1"></i> Sign in with Legion</a>
-        {% endif %}
+<div class="mw-signin">
+  <div class="card mw-signin-card">
+    <div class="card-body p-4 text-center">
+      <h1 class="mw-app-title mb-1">Virtus</h1>
+      <p class="text-muted mb-4">Sign in with your Legion account.</p>
+      {% if not_synced %}
+      <div class="alert alert-danger py-2 text-start">
+        You're signed in as <strong>{{ signed_in_name }}</strong>, but you're not on the
+        Virtus roster yet. Ask an admin to sync the roster, then reload.
       </div>
+      <a href="/me" class="btn btn-outline-primary w-100">
+        <i class="bi bi-arrow-clockwise me-1"></i> Try again
+      </a>
+      {% else %}
+      <a href="{{ authorize_url }}" class="btn btn-primary w-100">
+        <i class="bi bi-slack me-1"></i> Sign in with Legion
+      </a>
+      {% endif %}
+      <p class="text-muted small mt-4 mb-0">
+        <i class="bi bi-lightning-charge me-1"></i>
+        Tip: run <code>/virtus</code> in Slack to see your open goals without signing in.
+      </p>
     </div>
   </div>
 </div>
